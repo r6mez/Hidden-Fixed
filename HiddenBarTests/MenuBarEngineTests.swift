@@ -118,8 +118,8 @@ private func item(_ bundle: String?, x: CGFloat, width: CGFloat = 24) -> MenuBar
 
 // LTR bar used throughout: always-hidden separator at 1000, the boundary at 1300
 // (the separator for the resolver, the arrow for the native engine).
-private let alwaysHiddenSeparator = CGRect(x: 1000, y: 0, width: 20, height: 24)
-private let separator = CGRect(x: 1300, y: 0, width: 20, height: 24)
+private let alwaysHiddenSeparator = CGRect(x: 1000, y: 976, width: 20, height: 24)
+private let separator = CGRect(x: 1300, y: 976, width: 20, height: 24)
 private let mainDisplay = MenuBarDisplay(identifier: "main",
                                          appKitFrame: CGRect(x: 0, y: 0, width: 2000, height: 1000),
                                          accessibilityFrame: CGRect(x: 0, y: 0, width: 2000, height: 1000))
@@ -137,8 +137,8 @@ final class MenuBarLayoutResolverTests: XCTestCase {
 
     func testRTLSectionsAreMirrored() {
         // RTL: arrow on the left, separator just right of it, hidden further right.
-        let rtlSeparator = CGRect(x: 300, y: 0, width: 20, height: 24)
-        let rtlAlwaysHidden = CGRect(x: 600, y: 0, width: 20, height: 24)
+        let rtlSeparator = CGRect(x: 300, y: 976, width: 20, height: 24)
+        let rtlAlwaysHidden = CGRect(x: 600, y: 976, width: 20, height: 24)
         let layout = MenuBarLayoutResolver.resolve(
             inventory: [item("com.visible", x: 200), item("com.hidden", x: 450), item("com.always", x: 700)],
             separatorFrame: rtlSeparator, alwaysHiddenSeparatorFrame: rtlAlwaysHidden, displays: [mainDisplay],
@@ -216,6 +216,16 @@ final class MenuBarLayoutResolverTests: XCTestCase {
             separatorFrame: CGRect(x: 2200, y: 1416, width: 20, height: 24), alwaysHiddenSeparatorFrame: nil,
             displays: displays, isLTR: true, excludingBundle: nil)
         XCTAssertEqual(layout?.sections, ["com.visible": .visible, "com.hidden": .hidden])
+    }
+
+    // Right after launch the arrow is not in the bar yet (seen at x=16 near the
+    // bottom); sectioning from it would hide every icon.
+    func testArrowNotYetInMenuBarMakesLayoutUnavailable() {
+        let layout = MenuBarLayoutResolver.resolve(
+            inventory: [item("com.visible", x: 1400)],
+            separatorFrame: CGRect(x: 6, y: 0, width: 20, height: 24), alwaysHiddenSeparatorFrame: nil,
+            displays: [mainDisplay], isLTR: true, excludingBundle: nil)
+        XCTAssertNil(layout)
     }
 
     func testUnassignedThirdPartyItemMakesLayoutUnavailable() {

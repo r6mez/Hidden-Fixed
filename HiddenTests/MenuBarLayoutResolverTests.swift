@@ -51,7 +51,7 @@ final class MenuBarLayoutResolverTests: XCTestCase {
     // Then its bundle lands in the visible section
     func test_systemUIServerItemRightOfArrow_resolvesVisible() {
         let item = makeItem(bundleIdentifier: "com.apple.systemuiserver", x: 600)
-        let separator = CGRect(x: 490, y: 0, width: 20, height: 22)
+        let separator = CGRect(x: 490, y: 978, width: 20, height: 22)
 
         let layout = resolveOnOneDisplay(inventory: [item],
                                                    separatorFrame: separator,
@@ -69,7 +69,7 @@ final class MenuBarLayoutResolverTests: XCTestCase {
     // Then its bundle lands in the hidden section
     func test_systemUIServerItemLeftOfArrow_resolvesHidden() {
         let item = makeItem(bundleIdentifier: "com.apple.systemuiserver", x: 100)
-        let separator = CGRect(x: 490, y: 0, width: 20, height: 22)
+        let separator = CGRect(x: 490, y: 978, width: 20, height: 22)
 
         let layout = resolveOnOneDisplay(inventory: [item],
                                                    separatorFrame: separator,
@@ -87,7 +87,7 @@ final class MenuBarLayoutResolverTests: XCTestCase {
     // Then it is excluded from the layout, protected by its system item ID
     func test_controlCenterItem_isExcludedFromLayout() {
         let item = makeItem(bundleIdentifier: "com.apple.controlcenter", x: 600)
-        let separator = CGRect(x: 490, y: 0, width: 20, height: 22)
+        let separator = CGRect(x: 490, y: 978, width: 20, height: 22)
 
         let layout = resolveOnOneDisplay(inventory: [item],
                                                    separatorFrame: separator,
@@ -107,7 +107,7 @@ final class MenuBarLayoutResolverTests: XCTestCase {
     func test_systemUIServerItemsStraddlingArrow_resolvesVisible() {
         let hiddenItem = makeItem(bundleIdentifier: "com.apple.systemuiserver", x: 100)
         let visibleItem = makeItem(bundleIdentifier: "com.apple.systemuiserver", x: 600)
-        let separator = CGRect(x: 490, y: 0, width: 20, height: 22)
+        let separator = CGRect(x: 490, y: 978, width: 20, height: 22)
 
         let layout = resolveOnOneDisplay(inventory: [hiddenItem, visibleItem],
                                                    separatorFrame: separator,
@@ -126,8 +126,8 @@ final class MenuBarLayoutResolverTests: XCTestCase {
     // Then its bundle lands in the always-hidden section
     func test_systemUIServerItemLeftOfAlwaysHiddenSeparator_resolvesAlwaysHidden() {
         let item = makeItem(bundleIdentifier: "com.apple.systemuiserver", x: 100)
-        let separator = CGRect(x: 490, y: 0, width: 20, height: 22)
-        let alwaysHiddenSeparator = CGRect(x: 300, y: 0, width: 20, height: 22)
+        let separator = CGRect(x: 490, y: 978, width: 20, height: 22)
+        let alwaysHiddenSeparator = CGRect(x: 300, y: 978, width: 20, height: 22)
 
         let layout = resolveOnOneDisplay(inventory: [item],
                                                    separatorFrame: separator,
@@ -145,7 +145,7 @@ final class MenuBarLayoutResolverTests: XCTestCase {
     // Then its bundle lands in the visible section
     func test_systemUIServerItemLeftOfArrow_resolvesVisibleInRTL() {
         let item = makeItem(bundleIdentifier: "com.apple.systemuiserver", x: 100)
-        let separator = CGRect(x: 490, y: 0, width: 20, height: 22)
+        let separator = CGRect(x: 490, y: 978, width: 20, height: 22)
 
         let layout = resolveOnOneDisplay(inventory: [item],
                                                    separatorFrame: separator,

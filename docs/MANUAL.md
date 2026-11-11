@@ -31,7 +31,7 @@ section is enabled.
   second while it does.
 - With more than one display, an app stays visible if it is on the arrow's
   visible side on **any** display. If Hidden Bar cannot read a complete display
-  layout after a monitor change, wake, or app launch, it leaves the bar expanded
+  layout after a monitor change, it leaves the bar expanded
   until it can safely read it again.
 - These macOS items always stay visible: clock, Control Center, Wi-Fi,
   Bluetooth, Sound, Battery, Display, Keyboard and Screen Mirroring.

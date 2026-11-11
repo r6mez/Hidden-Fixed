@@ -245,10 +245,10 @@ final class NativeVisibilityEngine: MenuBarEngine {
                                                        isLTR: isLTR,
                                                        excludingBundle: self.ownBundleIdentifier)
             guard let layout = layout else {
-                NSLog("NativeVisibility: layout is incomplete for the connected displays; leaving the bar expanded")
+                NSLog("NativeVisibility: layout cannot be read yet (arrow frame \(boundary)); leaving the bar expanded")
                 return body(nil)
             }
-            NSLog("NativeVisibility: arrow at x=\(boundary.midX); visible \(layout.bundles(in: [.visible])), hidden \(layout.bundles(in: [.hidden])), always hidden \(layout.bundles(in: [.alwaysHidden]))")
+            NSLog("NativeVisibility: arrow frame \(boundary); visible \(layout.bundles(in: [.visible])), hidden \(layout.bundles(in: [.hidden])), always hidden \(layout.bundles(in: [.alwaysHidden]))")
             self.layout = layout
             body(layout)
         }

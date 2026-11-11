@@ -75,6 +75,7 @@ enum MenuBarLayoutResolver {
                         isLTR: Bool,
                         excludingBundle ownBundle: String?) -> MenuBarLayout? {
         guard let boundaryDisplay = display(containingAppKitPoint: midpoint(of: separatorFrame), in: displays),
+              isInMenuBar(separatorFrame, of: boundaryDisplay),
               alwaysHiddenSeparatorFrame.map({ display(containingAppKitPoint: midpoint(of: $0), in: displays) == boundaryDisplay }) ?? true else {
             return nil
         }
@@ -116,6 +117,15 @@ enum MenuBarLayoutResolver {
             ? target.accessibilityFrame.maxX - distanceFromArrowEdge
             : target.accessibilityFrame.minX + distanceFromArrowEdge
         return CGRect(x: projectedMidX - frame.width / 2, y: 0, width: frame.width, height: frame.height)
+    }
+
+    // Right after launch the arrow's window is not placed in the bar yet and
+    // reports a frame near the screen's bottom-left; reading sections from it put
+    // every icon on the hidden side. A placed status item touches the top edge.
+    private static let menuBarBandHeight: CGFloat = 60
+
+    private static func isInMenuBar(_ frame: CGRect, of display: MenuBarDisplay) -> Bool {
+        return frame.maxY >= display.appKitFrame.maxY - menuBarBandHeight
     }
 
     private static func display(containingAppKitPoint point: CGPoint, in displays: [MenuBarDisplay]) -> MenuBarDisplay? {

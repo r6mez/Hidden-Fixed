@@ -45,6 +45,8 @@ class StatusBarController: MenuBarItemProvider {
 
     private var hoverMonitor: Any?
     private var hoverDwellTimer: Timer?
+    // The display setup last acted on; see handleScreenParametersChanged.
+    private var lastDisplays = MenuBarDisplayInventory.current()
 
     // True while the pointer sits in any screen's menubar band (the strip between
     // visibleFrame.maxY and frame.maxY, which is the menubar's exact height there).
@@ -75,8 +77,6 @@ class StatusBarController: MenuBarItemProvider {
         setupAlwayHideStatusBar()
         setupHoverToExpandIfEnabled()
         NotificationCenter.default.addObserver(self, selector: #selector(handleScreenParametersChanged), name: NSApplication.didChangeScreenParametersNotification, object: nil)
-        NSWorkspace.shared.notificationCenter.addObserver(self, selector: #selector(handleWorkspaceMenuBarChange), name: NSWorkspace.didLaunchApplicationNotification, object: nil)
-        NSWorkspace.shared.notificationCenter.addObserver(self, selector: #selector(handleWorkspaceMenuBarChange), name: NSWorkspace.didWakeNotification, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(updateAutoHide), name: .prefsChanged, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(syncActivationPolicyWithFullStatusBar), name: .useFullStatusBarToggle, object: nil)
         // Sections are read from where the items sit, so wait until macOS has put
@@ -84,7 +84,7 @@ class StatusBarController: MenuBarItemProvider {
         // out of the bar when the app quit).
         DispatchQueue.main.asyncAfter(deadline: .now() + 1) { [weak self] in
             if Preferences.areSeparatorsHidden { self?.hideSeparators() }
-            self?.collapseMenuBar()
+            self?.collapseAtLaunch(attemptsLeft: 5)
         }
 
         autoCollapseIfNeeded()
@@ -122,14 +122,14 @@ class StatusBarController: MenuBarItemProvider {
         }
     }
     
+    // macOS 27 also posts this when the menu bar reflows, which native hiding
+    // itself triggers about half a second after every collapse. Acting on that
+    // released the restriction straight away, so only a real change to the
+    // displays (hot-plug, resolution, arrangement) counts.
     @objc private func handleScreenParametersChanged() {
-        invalidateNativeLayoutAfterEnvironmentChange()
-    }
-
-    // A new status item or a wake can change the Accessibility inventory just
-    // as much as a monitor hot-plug.  The native engine releases its global
-    // restriction here instead of applying a stale per-display classification.
-    @objc private func handleWorkspaceMenuBarChange() {
+        let displays = MenuBarDisplayInventory.current()
+        guard displays != lastDisplays else { return }
+        lastDisplays = displays
         invalidateNativeLayoutAfterEnvironmentChange()
     }
 
@@ -277,6 +277,17 @@ class StatusBarController: MenuBarItemProvider {
             case .unavailable:
                 self.didFailToCollapseMenuBar()
             }
+        }
+    }
+
+    // The arrow may not be placed in the bar yet a second after launch, and the
+    // engine then declines to hide; try again a few times before giving up.
+    private func collapseAtLaunch(attemptsLeft: Int) {
+        collapseMenuBar()
+        guard attemptsLeft > 1 else { return }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1) { [weak self] in
+            guard let self = self, !self.isCollapsed, self.menuBarEngine.state != .calibrating else { return }
+            self.collapseAtLaunch(attemptsLeft: attemptsLeft - 1)
         }
     }
 
