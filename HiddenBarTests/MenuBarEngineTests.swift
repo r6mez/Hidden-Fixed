@@ -200,6 +200,24 @@ final class MenuBarLayoutResolverTests: XCTestCase {
         XCTAssertEqual(layout?.sections["com.hidden.everywhere"], .hidden)
     }
 
+    // A rotated monitor whose top sits above the primary display's top: AX
+    // coordinates still start at the primary's top, so items in the primary's
+    // menu bar (AX y ~ 0) must map to the primary.
+    func testTallerSecondaryDisplayKeepsPrimaryMenuBarItemsAssigned() {
+        let displays = MenuBarDisplayInventory.displays(for: [
+            ("main", CGRect(x: 0, y: 0, width: 2560, height: 1440)),
+            ("rotated", CGRect(x: -1440, y: -695, width: 1440, height: 2560)),
+        ])
+        XCTAssertEqual(displays[0].accessibilityFrame, CGRect(x: 0, y: 0, width: 2560, height: 1440))
+        XCTAssertEqual(displays[1].accessibilityFrame, CGRect(x: -1440, y: -425, width: 1440, height: 2560))
+
+        let layout = MenuBarLayoutResolver.resolve(
+            inventory: [item("com.visible", x: 2300), item("com.hidden", x: 2000)],
+            separatorFrame: CGRect(x: 2200, y: 1416, width: 20, height: 24), alwaysHiddenSeparatorFrame: nil,
+            displays: displays, isLTR: true, excludingBundle: nil)
+        XCTAssertEqual(layout?.sections, ["com.visible": .visible, "com.hidden": .hidden])
+    }
+
     func testUnassignedThirdPartyItemMakesLayoutUnavailable() {
         let layout = MenuBarLayoutResolver.resolve(
             inventory: [MenuBarInventoryItem(bundleIdentifier: "com.unknown", frame: CGRect(x: 5000, y: 0, width: 24, height: 24))],
