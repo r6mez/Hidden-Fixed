@@ -45,6 +45,8 @@ class StatusBarController: MenuBarItemProvider {
 
     private var hoverMonitor: Any?
     private var hoverDwellTimer: Timer?
+    // The display setup last acted on; see handleScreenParametersChanged.
+    private var lastDisplays = MenuBarDisplayInventory.current()
 
     // True while the pointer sits in any screen's menubar band (the strip between
     // visibleFrame.maxY and frame.maxY, which is the menubar's exact height there).
@@ -62,11 +64,10 @@ class StatusBarController: MenuBarItemProvider {
     // the mouse-in-menubar guard does not cover it. With "use full menu bar on
     // expanding" on, an auto-collapse deactivates the app and dismisses this
     // window mid-edit (#170, same family as #66/#151). Defer the collapse while
-    // it is on screen. isWindowLoaded short-circuits without force-loading the
-    // window when preferences were never opened.
+    // it is on screen, without creating the controller or loading its window
+    // when preferences were never opened.
     private var isPreferencesWindowVisible: Bool {
-        let wc = PreferencesWindowController.shared
-        return wc.isWindowLoaded && (wc.window?.isVisible ?? false)
+        return PreferencesWindowController.isVisible
     }
     
     //MARK: - Methods
@@ -77,11 +78,15 @@ class StatusBarController: MenuBarItemProvider {
         setupHoverToExpandIfEnabled()
         NotificationCenter.default.addObserver(self, selector: #selector(handleScreenParametersChanged), name: NSApplication.didChangeScreenParametersNotification, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(updateAutoHide), name: .prefsChanged, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(syncActivationPolicyWithFullStatusBar), name: .useFullStatusBarToggle, object: nil)
+        // Sections are read from where the items sit, so wait until macOS has put
+        // them back in place (the always-hidden separator may have been taken
+        // out of the bar when the app quit).
         DispatchQueue.main.asyncAfter(deadline: .now() + 1) { [weak self] in
-            self?.collapseMenuBar()
+            if Preferences.areSeparatorsHidden { self?.hideSeparators() }
+            self?.collapseAtLaunch(attemptsLeft: 5)
         }
 
-        if Preferences.areSeparatorsHidden {hideSeparators()}
         autoCollapseIfNeeded()
     }
 
@@ -117,11 +122,23 @@ class StatusBarController: MenuBarItemProvider {
         }
     }
     
+    // macOS 27 also posts this when the menu bar reflows, which native hiding
+    // itself triggers about half a second after every collapse. Acting on that
+    // released the restriction straight away, so only a real change to the
+    // displays (hot-plug, resolution, arrangement) counts.
     @objc private func handleScreenParametersChanged() {
-        // Re-apply the recomputed length to the LIVE item when collapsed, or a
-        // display hot-plug leaves the separator at a stale length (PR #354).
+        let displays = MenuBarDisplayInventory.current()
+        guard displays != lastDisplays else { return }
+        lastDisplays = displays
+        invalidateNativeLayoutAfterEnvironmentChange()
+    }
+
+    private func invalidateNativeLayoutAfterEnvironmentChange() {
         let wasCollapsed = isCollapsed
         menuBarEngine.invalidateLayout()
+        if wasCollapsed && !isCollapsed {
+            didFailToCollapseMenuBar()
+        }
         if wasCollapsed && Preferences.areSeparatorsHidden {
             menuBarEngine.updateAlwaysHiddenSection(enabled: Preferences.alwaysHiddenSectionEnabled, separatorHidden: true)
         }
@@ -162,7 +179,8 @@ class StatusBarController: MenuBarItemProvider {
         let event = NSApp.currentEvent
         // AXPress synthesis carries no NSEvent; the resolver maps nil to .toggle
         // so VoiceOver can operate the bar.
-        switch ExpandCollapseActionResolver.action(eventType: event?.type, optionPressed: event?.modifierFlags.contains(.option) ?? false) {
+        let optionPressed = ExpandCollapseActionResolver.isOptionPressed(eventFlags: event?.modifierFlags, liveFlags: NSEvent.modifierFlags)
+        switch ExpandCollapseActionResolver.action(eventType: event?.type, optionPressed: optionPressed) {
         case .toggle:
             self.expandCollapseIfNeeded()
         case .contextMenu:
@@ -262,6 +280,17 @@ class StatusBarController: MenuBarItemProvider {
         }
     }
 
+    // The arrow may not be placed in the bar yet a second after launch, and the
+    // engine then declines to hide; try again a few times before giving up.
+    private func collapseAtLaunch(attemptsLeft: Int) {
+        collapseMenuBar()
+        guard attemptsLeft > 1 else { return }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1) { [weak self] in
+            guard let self = self, !self.isCollapsed, self.menuBarEngine.state != .calibrating else { return }
+            self.collapseAtLaunch(attemptsLeft: attemptsLeft - 1)
+        }
+    }
+
     // Nothing was hidden (the engine cannot hide on this system, or is waiting for
     // a permission), so show the bar as expanded, and restore the activation
     // policy in case the UI had already switched to collapsed.
@@ -299,6 +328,21 @@ class StatusBarController: MenuBarItemProvider {
         }
     }
     
+    // Expand/collapse skips the policy change when the option is off, so sync it on toggle.
+    @objc private func syncActivationPolicyWithFullStatusBar() {
+        let wantsRegular = Preferences.useFullStatusBarOnExpandEnabled && !isCollapsed
+        let policy: NSApplication.ActivationPolicy = wantsRegular ? .regular : .accessory
+        guard NSApp.activationPolicy() != policy else { return }
+        let keyWindow = NSApp.isActive ? NSApp.keyWindow : nil
+        NSApp.setActivationPolicy(policy)
+        if wantsRegular {
+            NSApp.activate(ignoringOtherApps: true)
+        } else if let keyWindow {
+            // Dropping to .accessory deactivates the app, so bring back the window in use.
+            DispatchQueue.main.async { keyWindow.bringToFront() }
+        }
+    }
+
     private func autoCollapseIfNeeded() {
         guard Preferences.isAutoHide else {return}
         guard !isCollapsed else { return }
@@ -372,22 +416,34 @@ class StatusBarController: MenuBarItemProvider {
 //MARK: - Alway hide feature
 extension StatusBarController {
     private func setupAlwayHideStatusBar() {
-        NotificationCenter.default.addObserver(self, selector: #selector(toggleStatusBarIfNeeded), name: .alwayHideToggle, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(alwaysHiddenSectionToggled), name: .alwayHideToggle, object: nil)
         toggleStatusBarIfNeeded()
     }
-    @objc private func toggleStatusBarIfNeeded() {
+
+    // Turning the section on shows its separator so it can be ⌘-dragged into
+    // place; the saved "hide separators" state is reset to match, or the next
+    // Option-click would only flip the preference and appear to do nothing.
+    @objc private func alwaysHiddenSectionToggled() {
+        if Preferences.alwaysHiddenSectionEnabled {
+            Preferences.areSeparatorsHidden = false
+        }
+        toggleStatusBarIfNeeded()
+    }
+
+    private func toggleStatusBarIfNeeded() {
         if Preferences.alwaysHiddenSectionEnabled {
             if let existing = self.btnAlwaysHidden {
                 NSStatusBar.system.removeStatusItem(existing)
             }
             self.btnAlwaysHidden = NSStatusBar.system.statusItem(withLength: 0)
-            menuBarEngine.updateAlwaysHiddenSection(enabled: true, separatorHidden: false)
             if let button = btnAlwaysHidden?.button {
                 button.image = self.imgIconLine
                 button.appearsDisabled = true
             }
             self.btnAlwaysHidden?.autosaveName = "hiddenbar_terminate"
             self.btnAlwaysHidden?.isVisible = true
+            // Last, so the engine decides whether the new item stays in the bar.
+            menuBarEngine.updateAlwaysHiddenSection(enabled: true, separatorHidden: false)
         } else {
             if let existing = self.btnAlwaysHidden {
                 NSStatusBar.system.removeStatusItem(existing)
