@@ -5,7 +5,7 @@
 	<a href="https://webuild.community">
 		<img src="https://raw.githubusercontent.com/webuild-community/badge/master/svg/love.svg" />
 	</a>
-	<a href="https://github.com/dwarvesf/hidden/releases/latest">
+	<a href="https://github.com/r6mez/Hidden-Fixed/releases/latest">
  		<img src="https://img.shields.io/badge/download-latest-brightgreen.svg" alt="download">
 	</a>
 	<a href="https://img.shields.io/badge/platform-macOS-lightgrey.svg">
@@ -18,6 +18,8 @@
 
 ## Hidden Bar
 Hidden Bar lets you hide menu bar items to give your Mac a cleaner look.
+
+> **This is Hidden-Fixed**, a community fork of [dwarvesf/hidden](https://github.com/dwarvesf/hidden) that collects fixes for macOS 27. See the [changelog](CHANGELOG.md) for what changed.
 
 <p align="center">
 	<img width="400" src="img/screen1.png">
@@ -40,10 +42,12 @@ The Hidden Bar is notarized before distributed out side App Store. It's safe to 
 brew install --cask hiddenbar
 ```
 
-#### Manual download
+#### Manual download (this fork)
 
-- [Download latest version](https://github.com/dwarvesf/hidden/releases/latest)
-- Open and drag the app to the Applications folder.
+- [Download latest version](https://github.com/r6mez/Hidden-Fixed/releases/latest)
+- Unzip and drag the app to the Applications folder (it must run from there).
+- The fork's builds are not notarized by Apple, so the first launch is blocked. Open **System Settings → Privacy & Security** and click **Open Anyway**, or run `xattr -dr com.apple.quarantine "/Applications/Hidden Bar.app"`.
+- On macOS 27, allow Hidden Bar in **Privacy & Security → Accessibility** (shown as "Device Control and Automation" on some versions). If you used the original app before, remove its old entry with "−" first.
 - Launch Hidden and drag the icon in your menu bar (hold CMD) to the right so it is between some other icons.
 
 ## 🕹 Usage

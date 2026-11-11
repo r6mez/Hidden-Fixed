@@ -1,17 +1,26 @@
 # Changelog
 
-## Unreleased
+## v1.12.0 (2026-11-11) — Hidden-Fixed fork
+
+First release of the community fork [r6mez/Hidden-Fixed](https://github.com/r6mez/Hidden-Fixed). It collects open fixes from the original repo plus new ones, focused on macOS 27.
 
 ### Fixed
-- macOS 27.2: Notification Center no longer closes right after opening from the clock while collapsed; the clock now gets a real click instead of an Accessibility press.
-- macOS 27 (direct download build): clicking the clock opens Notification Center again while icons are hidden (#410, #421, #435). macOS's native hiding is its exam (assessment) mode, which ignores the clock, so Hidden Bar lifts the hiding for a moment and presses the clock itself; the hidden icons show for under a second while it does. This also covers the expanded bar when the always-hidden section is hidden.
-- macOS 27 (direct download build): while any app uses the microphone or a camera, Hidden Bar stops hiding and shows the whole bar, then resumes when that stops. macOS 27's native hiding hides the menu-bar capsule that names the recording app (#437); the dot in the screen corner stays visible.
+- macOS 27: hiding no longer undoes itself about half a second after collapsing. macOS posts a screen-change notice whenever native hiding reflows the bar; only a real display change is acted on now, and opening an app or waking the Mac no longer shows every icon.
+- macOS 27: with a second display taller than the main one (e.g. a rotated monitor), hiding never engaged. Icon positions are now measured from the main display, as macOS does.
+- macOS 27: right after launch, before the arrow is placed, every icon could be hidden. The launch collapse now waits for the arrow and retries for a few seconds.
+- macOS 27: clicking the clock opens Notification Center again while collapsed (#410, #421, #435, #454), including on 27.2 where it used to close straight away. macOS ignores the clock while hiding, so the hidden icons flash briefly.
+- macOS 27: Option-click on the arrow toggles the always-hidden section again, and the "|" separator hides with its section (#434, #458) (upstream PR #445).
+- macOS 27: SystemUIServer items such as Time Machine can stay visible (#424) (upstream PR #425).
+- macOS 27: the whole bar shows while a microphone or camera is in use, so the recording indicator is never hidden (#437) (upstream PR #438).
+- macOS 27: multi-display layouts are resolved per display (upstream PR #422).
+- macOS 27: the menu-bar scan runs in parallel, so collapsing is faster (upstream PR #450).
+- Less memory before Preferences is first opened (upstream PR #447).
+- The Dock icon no longer lingers after turning off "use the full menu bar on expanding" (#423), and several Preferences layout glitches are fixed (upstream PR #460).
 
-### Known / in progress
-- macOS 27 (direct download build): native hiding is part of macOS's exam (assessment) mode, and macOS applies that mode's other restrictions while the arrow is collapsed (#437). Now Playing and Live Activities are hidden. Hidden Bar cannot opt out; the manual lists the details.
-
-### Changed
-- Manual: macOS's own items that stay visible while collapsed on macOS 27 are the clock, Control Center, Wi-Fi, Bluetooth, Sound, Battery, Display, Keyboard and Screen Mirroring, not all of them as previously stated.
+### Known limits (macOS 27)
+- Native hiding is macOS's exam (assessment) mode, so Now Playing, Live Activities, Siri and Focus hide while collapsed, whatever their position (#437, #446). Hidden Bar cannot opt out.
+- Icons from processes without a bundle identifier cannot be kept visible (#465).
+- Hiding is per app: an app with several icons hides or shows them together.
 
 ## v1.11.1 (2026-09-18)
 
