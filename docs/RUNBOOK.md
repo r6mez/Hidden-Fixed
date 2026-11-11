@@ -14,6 +14,14 @@ xcodebuild -project 'Hidden Bar.xcodeproj' -scheme 'Hidden Bar' \
   -configuration Debug build
 ```
 
+Local install that keeps the Accessibility permission across rebuilds (needs a
+self-signed code-signing certificate named "Hidden Bar Local Signing" in the
+login keychain):
+
+```sh
+scripts/install-local.sh
+```
+
 Both must exit 0 with **no** `MACOSX_DEPLOYMENT_TARGET` override; the floor is
 13.0 in the project file. The single expected warning is the deliberately
 deprecated `SMLoginItemSetEnabled(false)` call that cleans up legacy installs.
