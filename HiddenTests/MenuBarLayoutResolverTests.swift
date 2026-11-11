@@ -8,6 +8,24 @@ private func makeItem(bundleIdentifier: String?, x: CGFloat, width: CGFloat = 22
     )
 }
 
+// The resolver needs the displays the items sit on; these tests use one display
+// wide enough for every synthetic frame, whose layout always resolves.
+private func resolveOnOneDisplay(inventory: [MenuBarInventoryItem],
+                                 separatorFrame: CGRect,
+                                 alwaysHiddenSeparatorFrame: CGRect?,
+                                 isLTR: Bool,
+                                 excludingBundle: String?) -> MenuBarLayout {
+    let display = MenuBarDisplay(identifier: "main",
+                                 appKitFrame: CGRect(x: 0, y: 0, width: 2000, height: 1000),
+                                 accessibilityFrame: CGRect(x: 0, y: 0, width: 2000, height: 1000))
+    return MenuBarLayoutResolver.resolve(inventory: inventory,
+                                         separatorFrame: separatorFrame,
+                                         alwaysHiddenSeparatorFrame: alwaysHiddenSeparatorFrame,
+                                         displays: [display],
+                                         isLTR: isLTR,
+                                         excludingBundle: excludingBundle)!
+}
+
 /// Contract: MenuBarLayoutResolver.resolve buckets each inventoried menu-bar
 /// item into the section its frame sits in, keyed by owning bundle. Bundles in
 /// systemItemOwners (MenuBarAgent, Control Center) are macOS's own controls,
@@ -35,7 +53,7 @@ final class MenuBarLayoutResolverTests: XCTestCase {
         let item = makeItem(bundleIdentifier: "com.apple.systemuiserver", x: 600)
         let separator = CGRect(x: 490, y: 0, width: 20, height: 22)
 
-        let layout = MenuBarLayoutResolver.resolve(inventory: [item],
+        let layout = resolveOnOneDisplay(inventory: [item],
                                                    separatorFrame: separator,
                                                    alwaysHiddenSeparatorFrame: nil,
                                                    isLTR: true,
@@ -53,7 +71,7 @@ final class MenuBarLayoutResolverTests: XCTestCase {
         let item = makeItem(bundleIdentifier: "com.apple.systemuiserver", x: 100)
         let separator = CGRect(x: 490, y: 0, width: 20, height: 22)
 
-        let layout = MenuBarLayoutResolver.resolve(inventory: [item],
+        let layout = resolveOnOneDisplay(inventory: [item],
                                                    separatorFrame: separator,
                                                    alwaysHiddenSeparatorFrame: nil,
                                                    isLTR: true,
@@ -71,7 +89,7 @@ final class MenuBarLayoutResolverTests: XCTestCase {
         let item = makeItem(bundleIdentifier: "com.apple.controlcenter", x: 600)
         let separator = CGRect(x: 490, y: 0, width: 20, height: 22)
 
-        let layout = MenuBarLayoutResolver.resolve(inventory: [item],
+        let layout = resolveOnOneDisplay(inventory: [item],
                                                    separatorFrame: separator,
                                                    alwaysHiddenSeparatorFrame: nil,
                                                    isLTR: true,
@@ -91,7 +109,7 @@ final class MenuBarLayoutResolverTests: XCTestCase {
         let visibleItem = makeItem(bundleIdentifier: "com.apple.systemuiserver", x: 600)
         let separator = CGRect(x: 490, y: 0, width: 20, height: 22)
 
-        let layout = MenuBarLayoutResolver.resolve(inventory: [hiddenItem, visibleItem],
+        let layout = resolveOnOneDisplay(inventory: [hiddenItem, visibleItem],
                                                    separatorFrame: separator,
                                                    alwaysHiddenSeparatorFrame: nil,
                                                    isLTR: true,
@@ -111,7 +129,7 @@ final class MenuBarLayoutResolverTests: XCTestCase {
         let separator = CGRect(x: 490, y: 0, width: 20, height: 22)
         let alwaysHiddenSeparator = CGRect(x: 300, y: 0, width: 20, height: 22)
 
-        let layout = MenuBarLayoutResolver.resolve(inventory: [item],
+        let layout = resolveOnOneDisplay(inventory: [item],
                                                    separatorFrame: separator,
                                                    alwaysHiddenSeparatorFrame: alwaysHiddenSeparator,
                                                    isLTR: true,
@@ -129,7 +147,7 @@ final class MenuBarLayoutResolverTests: XCTestCase {
         let item = makeItem(bundleIdentifier: "com.apple.systemuiserver", x: 100)
         let separator = CGRect(x: 490, y: 0, width: 20, height: 22)
 
-        let layout = MenuBarLayoutResolver.resolve(inventory: [item],
+        let layout = resolveOnOneDisplay(inventory: [item],
                                                    separatorFrame: separator,
                                                    alwaysHiddenSeparatorFrame: nil,
                                                    isLTR: false,
