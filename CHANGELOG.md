@@ -3,6 +3,7 @@
 ## Unreleased
 
 ### Fixed
+- macOS 27.2: Notification Center no longer closes right after opening from the clock while collapsed; the clock now gets a real click instead of an Accessibility press.
 - macOS 27 (direct download build): clicking the clock opens Notification Center again while icons are hidden (#410, #421, #435). macOS's native hiding is its exam (assessment) mode, which ignores the clock, so Hidden Bar lifts the hiding for a moment and presses the clock itself; the hidden icons show for under a second while it does. This also covers the expanded bar when the always-hidden section is hidden.
 - macOS 27 (direct download build): while any app uses the microphone or a camera, Hidden Bar stops hiding and shows the whole bar, then resumes when that stops. macOS 27's native hiding hides the menu-bar capsule that names the recording app (#437); the dot in the screen corner stays visible.
 

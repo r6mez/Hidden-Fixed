@@ -53,14 +53,46 @@ final class SystemMenuBarClock: MenuBarClockProviding {
         }
     }
 
+    // On macOS 27.2 an AXPress on the clock opens Notification Center and closes
+    // it again ~150ms later, restricted or not, so the clock gets a synthetic
+    // mouse click instead (works on 27.0.1 too). The completion, which puts the
+    // restriction back, waits until the panel is open (it stays open under a
+    // restriction), or openTimeout if it never shows up.
+    private static let openTimeout: TimeInterval = 0.5
+    private static let pollInterval: TimeInterval = 0.02
+
     func press(at location: CGPoint, completion: @escaping () -> Void) {
         DispatchQueue.global(qos: .userInteractive).asyncAfter(deadline: .now() + Self.liftDelay) {
+            // The lookup also holds the click back until MenuBarAgent has applied the lift.
             let clocks = Self.clocks()
-            if let clock = clocks.first(where: { $0.frame.contains(location) }) ?? clocks.first {
+            guard let clock = clocks.first(where: { $0.frame.contains(location) }) ?? clocks.first else {
+                return DispatchQueue.main.async(execute: completion)
+            }
+            let point = clock.frame.contains(location) ? location : CGPoint(x: clock.frame.midX, y: clock.frame.midY)
+            if !Self.postClick(at: point) {
                 AXUIElementPerformAction(clock.element, kAXPressAction as CFString)
+            }
+            let deadline = Date().addingTimeInterval(Self.openTimeout)
+            while !Self.isNotificationCenterOpen && Date() < deadline {
+                Thread.sleep(forTimeInterval: Self.pollInterval)
             }
             DispatchQueue.main.async(execute: completion)
         }
+    }
+
+    // A plain left click at a global top-left-origin point. False if the events
+    // could not be created.
+    private static func postClick(at point: CGPoint) -> Bool {
+        let source = CGEventSource(stateID: .hidSystemState)
+        guard let down = CGEvent(mouseEventSource: source, mouseType: .leftMouseDown, mouseCursorPosition: point, mouseButton: .left),
+              let up = CGEvent(mouseEventSource: source, mouseType: .leftMouseUp, mouseCursorPosition: point, mouseButton: .left) else {
+            return false
+        }
+        down.flags = []
+        up.flags = []
+        down.post(tap: .cghidEventTap)
+        up.post(tap: .cghidEventTap)
+        return true
     }
 
     private func updateMonitor() {
