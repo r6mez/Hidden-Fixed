@@ -59,7 +59,8 @@ final class SystemMenuBarClock: MenuBarClockProviding {
     // restriction back, waits until the panel is open (it stays open under a
     // restriction), or openTimeout if it never shows up.
     private static let openTimeout: TimeInterval = 0.5
-    private static let pollInterval: TimeInterval = 0.02
+    // Short, because the hidden icons show until the restriction is back.
+    private static let pollInterval: TimeInterval = 0.005
 
     func press(at location: CGPoint, completion: @escaping () -> Void) {
         DispatchQueue.global(qos: .userInteractive).asyncAfter(deadline: .now() + Self.liftDelay) {
